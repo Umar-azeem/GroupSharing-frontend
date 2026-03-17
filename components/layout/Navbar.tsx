@@ -27,7 +27,7 @@ export default function Navbar() {
     setDropdownOpen(false);
   };
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:8000";
   const avatarUrl = user?.profileImage
     ? user.profileImage.startsWith("http")
       ? user.profileImage

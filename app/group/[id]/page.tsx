@@ -32,7 +32,7 @@ export default function GroupDetailPage() {
   const [liked, setLiked] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:8000";
 
   useEffect(() => {
     fetchGroup();

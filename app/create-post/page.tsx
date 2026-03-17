@@ -24,12 +24,42 @@ export default function CreatePostPage() {
   const [preview, setPreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isEdit, setIsEdit] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
     }
   }, [user, authLoading, router]);
+
+  // Handle Edit Mode
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const id = searchParams.get("edit");
+    if (id) {
+      setIsEdit(true);
+      setEditId(id);
+      fetchEditData(id);
+    }
+  }, []);
+
+  const fetchEditData = async (id: string) => {
+    setLoading(true);
+    try {
+      const data = await groupsAPI.getOne(id);
+      const { groupName, groupLink, description, category, groupImage } = data.group;
+      setForm({ groupName, groupLink, description, category });
+      if (groupImage) {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:8000";
+        setPreview(groupImage.startsWith("http") ? groupImage : `${API_URL}${groupImage}`);
+      }
+    } catch (err: any) {
+      setError("Failed to fetch group data for editing");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -56,10 +86,15 @@ export default function CreatePostPage() {
       formData.append("category", form.category);
       if (image) formData.append("groupImage", image);
 
-      const data = await groupsAPI.create(formData);
-      router.push(`/group/${data.group._id}`);
+      if (isEdit && editId) {
+        await groupsAPI.update(editId, formData);
+        router.push(`/group/${editId}`);
+      } else {
+        const data = await groupsAPI.create(formData);
+        router.push(`/group/${data.group._id}`);
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to create group post");
+      setError(err.message || "Failed to save group post");
     } finally {
       setLoading(false);
     }
@@ -79,9 +114,11 @@ export default function CreatePostPage() {
       <div className="max-w-2xl mx-auto px-4 py-12">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "Syne, sans-serif" }}>
-            Share a Group
+            {isEdit ? "Edit Group" : "Share a Group"}
           </h1>
-          <p className="text-muted-foreground">Post an Instagram community link for others to discover</p>
+          <p className="text-muted-foreground">
+            {isEdit ? "Update your community details" : "Post an Instagram community link for others to discover"}
+          </p>
         </div>
 
         <div className="glass-card p-8">
@@ -216,7 +253,7 @@ export default function CreatePostPage() {
                 className="flex-1 btn-primary flex items-center justify-center gap-2 py-3"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {loading ? "Posting..." : "Share Group"}
+                {loading ? (isEdit ? "Updating..." : "Posting...") : (isEdit ? "Update Group" : "Share Group")}
               </button>
             </div>
           </form>

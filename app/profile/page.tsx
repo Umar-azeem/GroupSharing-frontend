@@ -24,7 +24,7 @@ export default function ProfilePage() {
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwError, setPwError] = useState("");
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:8000";
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/login");

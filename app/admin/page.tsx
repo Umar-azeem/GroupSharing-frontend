@@ -72,6 +72,15 @@ export default function AdminPage() {
     setActionId(null);
   };
 
+  const handleStatusUpdate = async (id: string, status: string) => {
+    setActionId(id);
+    try {
+      const data = await adminAPI.updatePostStatus(id, status);
+      setPosts((prev) => prev.map((p) => p._id === id ? { ...p, status: data.group.status } : p));
+    } catch (err: any) { alert(err.message); }
+    setActionId(null);
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -212,13 +221,25 @@ export default function AdminPage() {
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Eye className="w-3 h-3" /> {p.views}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                      p.status === "active" ? "border-green-500/30 text-green-400 bg-green-500/10"
-                      : p.status === "rejected" ? "border-red-500/30 text-red-400 bg-red-500/10"
-                      : "border-yellow-500/30 text-yellow-400 bg-yellow-500/10"
-                    }`}>
-                      {p.status}
-                    </span>
+                    <div className="flex items-center gap-2 mt-2">
+                      <select
+                        value={p.status}
+                        onChange={(e) => handleStatusUpdate(p._id, e.target.value)}
+                        disabled={actionId === p._id}
+                        className="bg-muted text-xs rounded-md border-border p-1 outline-none focus:ring-1 focus:ring-primary/30"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="active">Active</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                        p.status === "active" ? "border-green-500/30 text-green-400 bg-green-500/10"
+                        : p.status === "rejected" ? "border-red-500/30 text-red-400 bg-red-500/10"
+                        : "border-yellow-500/30 text-yellow-400 bg-yellow-500/10"
+                      }`}>
+                        {p.status}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
