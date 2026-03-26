@@ -110,7 +110,8 @@ export const adminAPI = {
   },
   deleteUser: (id: string, adminPassword: string) => 
     fetchAPI(`/admin/user/${id}`, { method: "DELETE", body: JSON.stringify({ adminPassword }) }),
-  getAllPosts: () => fetchAPI("/admin/posts"),
+  getAllPosts: (search?: string) => 
+    fetchAPI(`/admin/posts${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   deletePost: (id: string) => fetchAPI(`/admin/post/${id}`, { method: "DELETE" }),
   updatePostStatus: (id: string, status: string) =>
     fetchAPI(`/admin/post/${id}/status`, { method: "PUT", body: JSON.stringify({ status }) }),

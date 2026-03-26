@@ -20,6 +20,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [postSearchQuery, setPostSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState<{ id: string; type: "freeze" | "unfreeze" | "delete"; name: string } | null>(null);
   const [adminPassword, setAdminPassword] = useState("");
@@ -33,7 +34,7 @@ export default function AdminPage() {
     }
   }, [user, authLoading]);
 
-  // Handle live search
+  // Handle live search for users
   useEffect(() => {
     if (user?.role === "admin") {
       const timer = setTimeout(() => {
@@ -43,10 +44,27 @@ export default function AdminPage() {
     }
   }, [searchQuery]);
 
+  // Handle live search for posts
+  useEffect(() => {
+    if (user?.role === "admin") {
+      const timer = setTimeout(() => {
+        fetchPosts();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [postSearchQuery]);
+
   const fetchUsers = async () => {
     try {
       const data = await adminAPI.getUsers(searchQuery);
       setUsers(data.users);
+    } catch {}
+  };
+
+  const fetchPosts = async () => {
+    try {
+      const data = await adminAPI.getAllPosts(postSearchQuery);
+      setPosts(data.posts);
     } catch {}
   };
 
@@ -304,63 +322,89 @@ export default function AdminPage() {
 
         {/* Posts tab */}
         {tab === "posts" && (
-          <div className="space-y-3">
-            {posts.map((p) => (
-              <div key={p._id} className="glass-card p-4 flex items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium truncate">{p.groupName}</p>
-                    {p.isVerified && <CheckCircle className="w-4 h-4 text-primary shrink-0" />}
-                  </div>
-                  <p className="text-sm text-muted-foreground">By {p.createdBy?.name} · {p.category}</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Eye className="w-3 h-3" /> {p.views}
-                    </span>
-                    <div className="flex items-center gap-2 mt-2">
-                      <select
-                        value={p.status}
-                        onChange={(e) => handleStatusUpdate(p._id, e.target.value)}
+          <div className="space-y-6">
+            {/* Post Search Bar */}
+            <div className="glass-card p-4 relative flex items-center gap-3">
+              <Search className="w-5 h-5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search posts by name or category..."
+                value={postSearchQuery}
+                onChange={(e) => setPostSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
+              />
+              {postSearchQuery && (
+                <button onClick={() => setPostSearchQuery("")} className="p-1 hover:bg-muted rounded-full">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {posts.length > 0 ? (
+                posts.map((p) => (
+                  <div key={p._id} className="glass-card p-4 flex items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{p.groupName}</p>
+                        {p.isVerified && <CheckCircle className="w-4 h-4 text-primary shrink-0" />}
+                      </div>
+                      <p className="text-sm text-muted-foreground">By {p.createdBy?.name} · {p.category}</p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Eye className="w-3 h-3" /> {p.views}
+                        </span>
+                        <div className="flex items-center gap-2 mt-2">
+                          <select
+                            value={p.status}
+                            onChange={(e) => handleStatusUpdate(p._id, e.target.value)}
+                            disabled={actionId === p._id}
+                            className="bg-muted text-xs rounded-md border-border p-1 outline-none focus:ring-1 focus:ring-primary/30"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="active">Active</option>
+                            <option value="rejected">Rejected</option>
+                          </select>
+                          <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                            p.status === "active" ? "border-green-500/30 text-green-400 bg-green-500/10"
+                            : p.status === "rejected" ? "border-red-500/30 text-red-400 bg-red-500/10"
+                            : "border-yellow-500/30 text-yellow-400 bg-yellow-500/10"
+                          }`}>
+                            {p.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleVerify(p._id)}
                         disabled={actionId === p._id}
-                        className="bg-muted text-xs rounded-md border-border p-1 outline-none focus:ring-1 focus:ring-primary/30"
+                        className={`p-2 rounded-lg transition-colors ${
+                          p.isVerified
+                            ? "bg-primary/10 text-primary hover:bg-primary/20"
+                            : "bg-muted hover:bg-primary/10 hover:text-primary"
+                        }`}
+                        title={p.isVerified ? "Remove verification" : "Verify post"}
                       >
-                        <option value="pending">Pending</option>
-                        <option value="active">Active</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                        p.status === "active" ? "border-green-500/30 text-green-400 bg-green-500/10"
-                        : p.status === "rejected" ? "border-red-500/30 text-red-400 bg-red-500/10"
-                        : "border-yellow-500/30 text-yellow-400 bg-yellow-500/10"
-                      }`}>
-                        {p.status}
-                      </span>
+                        {actionId === p._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => handleDeletePost(p._id)}
+                        disabled={actionId === p._id}
+                        className="p-2 rounded-lg bg-muted hover:bg-destructive/20 hover:text-destructive transition-colors"
+                      >
+                        {actionId === p._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-10 glass-card">
+                  <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-20" />
+                  <p className="text-muted-foreground">No posts found matching "{postSearchQuery}"</p>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => handleVerify(p._id)}
-                    disabled={actionId === p._id}
-                    className={`p-2 rounded-lg transition-colors ${
-                      p.isVerified
-                        ? "bg-primary/10 text-primary hover:bg-primary/20"
-                        : "bg-muted hover:bg-primary/10 hover:text-primary"
-                    }`}
-                    title={p.isVerified ? "Remove verification" : "Verify post"}
-                  >
-                    {actionId === p._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={() => handleDeletePost(p._id)}
-                    disabled={actionId === p._id}
-                    className="p-2 rounded-lg bg-muted hover:bg-destructive/20 hover:text-destructive transition-colors"
-                  >
-                    {actionId === p._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
         )}
         {/* Password Confirmation Modal */}
