@@ -104,12 +104,20 @@ export const groupsAPI = {
 // Admin API
 export const adminAPI = {
   getStats: () => fetchAPI("/admin/stats"),
-  getUsers: () => fetchAPI("/admin/users"),
-  deleteUser: (id: string) => fetchAPI(`/admin/user/${id}`, { method: "DELETE" }),
+  getUsers: (search?: string) => {
+    const query = search ? `?search=${encodeURIComponent(search)}` : "";
+    return fetchAPI(`/admin/users${query}`);
+  },
+  deleteUser: (id: string, adminPassword: string) => 
+    fetchAPI(`/admin/user/${id}`, { method: "DELETE", body: JSON.stringify({ adminPassword }) }),
   getAllPosts: () => fetchAPI("/admin/posts"),
   deletePost: (id: string) => fetchAPI(`/admin/post/${id}`, { method: "DELETE" }),
   updatePostStatus: (id: string, status: string) =>
     fetchAPI(`/admin/post/${id}/status`, { method: "PUT", body: JSON.stringify({ status }) }),
   verifyPost: (id: string) =>
     fetchAPI(`/admin/post/${id}/verify`, { method: "PUT" }),
+  freezeUser: (id: string, adminPassword: string) =>
+    fetchAPI(`/admin/user/${id}/freeze`, { method: "PUT", body: JSON.stringify({ adminPassword }) }),
+  unfreezeUser: (id: string, adminPassword: string) =>
+    fetchAPI(`/admin/user/${id}/unfreeze`, { method: "PUT", body: JSON.stringify({ adminPassword }) }),
 };

@@ -7,7 +7,7 @@ import Navbar from "@/components/layout/Navbar";
 import { adminAPI } from "@/lib/api";
 import {
   Users, FileText, Eye, Trash2, Shield, Loader2,
-  BarChart3, CheckCircle, XCircle, Clock
+  BarChart3, CheckCircle, XCircle, Clock, Lock, Unlock, Search, X
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -19,6 +19,11 @@ export default function AdminPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalData, setModalData] = useState<{ id: string; type: "freeze" | "unfreeze" | "delete"; name: string } | null>(null);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
@@ -27,6 +32,23 @@ export default function AdminPage() {
       fetchAll();
     }
   }, [user, authLoading]);
+
+  // Handle live search
+  useEffect(() => {
+    if (user?.role === "admin") {
+      const timer = setTimeout(() => {
+        fetchUsers();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [searchQuery]);
+
+  const fetchUsers = async () => {
+    try {
+      const data = await adminAPI.getUsers(searchQuery);
+      setUsers(data.users);
+    } catch {}
+  };
 
   const fetchAll = async () => {
     setLoading(true);
@@ -43,15 +65,44 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  const handleDeleteUser = async (id: string) => {
-    if (!confirm("Delete this user and all their posts?")) return;
-    setActionId(id);
+  const confirmAction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalData || !adminPassword) return;
+
+    setModalLoading(true);
+    const { id, type } = modalData;
+    
     try {
-      await adminAPI.deleteUser(id);
-      setUsers((prev) => prev.filter((u) => u._id !== id));
-    } catch (err: any) { alert(err.message); }
-    setActionId(null);
+      if (type === "delete") {
+        await adminAPI.deleteUser(id, adminPassword);
+        setUsers((prev) => prev.filter((u) => u._id !== id));
+      } else if (type === "freeze") {
+        await adminAPI.freezeUser(id, adminPassword);
+        setUsers((prev) => prev.map((u) => u._id === id ? { ...u, isFrozen: true } : u));
+      } else if (type === "unfreeze") {
+        await adminAPI.unfreezeUser(id, adminPassword);
+        setUsers((prev) => prev.map((u) => u._id === id ? { ...u, isFrozen: false } : u));
+      }
+      setIsModalOpen(false);
+      setAdminPassword("");
+      setModalData(null);
+    } catch (err: any) {
+      alert(err.message || "Failed to perform action. Check your password.");
+    } finally {
+      setModalLoading(false);
+    }
   };
+
+  const openConfirmModal = (id: string, type: "freeze" | "unfreeze" | "delete", name: string) => {
+    setModalData({ id, type, name });
+    setIsModalOpen(true);
+    setAdminPassword("");
+  };
+
+  const filteredUsers = users.filter(u => 
+    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleDeletePost = async (id: string) => {
     if (!confirm("Delete this post?")) return;
@@ -176,33 +227,78 @@ export default function AdminPage() {
 
         {/* Users tab */}
         {tab === "users" && (
-          <div className="space-y-3">
-            {users.map((u) => (
-              <div key={u._id} className="glass-card p-4 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-bold text-sm shrink-0">
-                  {u.name[0].toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium truncate">{u.name}</p>
-                    {u.role === "admin" && (
-                      <span className="text-xs bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full">Admin</span>
+          <div className="space-y-6">
+            {/* Search Bar */}
+            <div className="glass-card p-4 relative flex items-center gap-3">
+              <Search className="w-5 h-5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search users by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="p-1 hover:bg-muted rounded-full">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((u) => (
+                  <div key={u._id} className="glass-card p-4 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-bold text-sm shrink-0">
+                      {u.name[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{u.name}</p>
+                        {u.role === "admin" && (
+                          <span className="text-xs bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full">Admin</span>
+                        )}
+                        {u.isFrozen && (
+                          <span className="text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> Frozen
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{u.email}</p>
+                      <p className="text-xs text-muted-foreground">Joined {new Date(u.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    {u.role !== "admin" && (
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={() => openConfirmModal(u._id, u.isFrozen ? "unfreeze" : "freeze", u.name)}
+                          disabled={actionId === u._id}
+                          className={`p-2 rounded-lg transition-colors ${
+                            u.isFrozen 
+                              ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" 
+                              : "bg-muted hover:bg-blue-500/10 hover:text-blue-400"
+                          }`}
+                          title={u.isFrozen ? "Unfreeze user" : "Freeze user"}
+                        >
+                          {actionId === u._id ? <Loader2 className="w-4 h-4 animate-spin" /> : (u.isFrozen ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />)}
+                        </button>
+                        <button
+                          onClick={() => openConfirmModal(u._id, "delete", u.name)}
+                          disabled={actionId === u._id}
+                          className="p-2 rounded-lg bg-muted hover:bg-destructive/20 hover:text-destructive transition-colors"
+                        >
+                          {actionId === u._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                      </div>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{u.email}</p>
-                  <p className="text-xs text-muted-foreground">Joined {new Date(u.createdAt).toLocaleDateString()}</p>
+                ))
+              ) : (
+                <div className="text-center py-10 glass-card">
+                  <Users className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-20" />
+                  <p className="text-muted-foreground">No users found matching "{searchQuery}"</p>
                 </div>
-                {u.role !== "admin" && (
-                  <button
-                    onClick={() => handleDeleteUser(u._id)}
-                    disabled={actionId === u._id}
-                    className="p-2 rounded-lg bg-muted hover:bg-destructive/20 hover:text-destructive transition-colors shrink-0"
-                  >
-                    {actionId === u._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
-                )}
-              </div>
-            ))}
+              )}
+            </div>
           </div>
         )}
 
@@ -265,6 +361,57 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        {/* Password Confirmation Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <div className="glass-card w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+              <h3 className="text-xl font-bold mb-2" style={{ fontFamily: "Syne, sans-serif" }}>
+                Confirm {modalData?.type === "delete" ? "Deletion" : modalData?.type === "freeze" ? "Freeze" : "Unfreeze"}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Are you sure you want to {modalData?.type} <strong>{modalData?.name}</strong>? 
+                {modalData?.type === "delete" && " This will also remove all their posts."}
+                {modalData?.type === "freeze" && " They will be unable to log in or post."}
+              </p>
+
+              <form onSubmit={confirmAction} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Your Admin Password</label>
+                  <input
+                    type="password"
+                    autoFocus
+                    required
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    className="w-full bg-muted border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    placeholder="Enter your password to confirm"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-sm font-medium hover:bg-muted rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={modalLoading || !adminPassword}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
+                      modalData?.type === "delete" 
+                        ? "bg-destructive text-destructive-foreground hover:opacity-90" 
+                        : "bg-primary text-primary-foreground hover:opacity-90"
+                    }`}
+                  >
+                    {modalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Action"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>
