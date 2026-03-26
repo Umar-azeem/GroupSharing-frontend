@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { Heart, Eye, ExternalLink, Shield, CheckCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { groupsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { useSocket } from "@/components/providers/SocketProvider";
 import { useRouter } from "next/navigation";
+import TimeAgo from "@/components/ui/TimeAgo";
 
 interface Group {
   _id: string;
@@ -36,11 +38,13 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function GroupCard({ group }: { group: Group }) {
   const { user } = useAuth();
   const router = useRouter();
-  const [likes, setLikes] = useState(group.likes?.length || 0);
+  const [likesCount, setLikesCount] = useState(group.likes?.length || 0);
   const [liked, setLiked] = useState(
-    user ? group.likes?.includes(user._id) : false,
+    user ? group.likes?.some((id: any) => (typeof id === 'string' ? id === user._id : id._id === user._id)) : false,
   );
+  const [views, setViews] = useState(group.views || 0);
   const [liking, setLiking] = useState(false);
+  const { socket } = useSocket();
 
   const API_URL =
     process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
@@ -51,28 +55,61 @@ export default function GroupCard({ group }: { group: Group }) {
       : `${API_URL}${group.imageUrl}`
     : null;
 
+  // Real-time updates for THIS card
+  useEffect(() => {
+    const handleGroupLiked = ({ groupId, likesCount, userId, isLiked }: any) => {
+      if (groupId === group._id) {
+        setLikesCount(likesCount);
+        // Only update 'liked' state if it's from another device/user 
+        // OR we need to sync with the server response
+        if (user && userId === user._id) {
+          setLiked(isLiked);
+        }
+      }
+    };
+
+    const handleGroupViewed = ({ groupId, viewsCount }: any) => {
+      if (groupId === group._id) {
+        setViews(viewsCount);
+      }
+    };
+
+    socket.on("group:liked", handleGroupLiked);
+    socket.on("group:viewed", handleGroupViewed);
+
+    return () => {
+      socket.off("group:liked", handleGroupLiked);
+      socket.off("group:viewed", handleGroupViewed);
+    };
+  }, [group._id, socket, user]);
+
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user || liking) return;
+
+    // Optimistic Update
+    const previousLiked = liked;
+    const previousCount = likesCount;
+    
+    setLiked(!previousLiked);
+    setLikesCount(prev => previousLiked ? prev - 1 : prev + 1);
     setLiking(true);
+
     try {
-      const data = await groupsAPI.like(group._id);
-      setLikes(data.likes);
-      setLiked(data.isLiked);
-    } catch {}
-    setLiking(false);
+      await groupsAPI.like(group._id);
+      // We don't need to do anything here because the socket event 
+      // will eventually sync the state if needed, or the optimistic update is enough.
+    } catch (err) {
+      // Rollback on error
+      setLiked(previousLiked);
+      setLikesCount(previousCount);
+    } finally {
+      setLiking(false);
+    }
   };
 
-  const timeAgo = (date: string) => {
-    const diff = Date.now() - new Date(date).getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days === 0) return "Today";
-    if (days === 1) return "Yesterday";
-    if (days < 7) return `${days}d ago`;
-    if (days < 30) return `${Math.floor(days / 7)}w ago`;
-    return `${Math.floor(days / 30)}mo ago`;
-  };
+  // timeAgo function removed in favor of TimeAgo component
 
   const handleCardClick = () => {
     router.push(`/group/${group._id}`);
@@ -138,12 +175,12 @@ export default function GroupCard({ group }: { group: Group }) {
               } ${!user ? "cursor-default" : ""}`}
             >
               <Heart className={`w-3.5 h-3.5 ${liked ? "fill-current" : ""}`} />
-              {likes}
+              {likesCount}
             </button>
             <span className="flex items-center gap-1">
-              <Eye className="w-3.5 h-3.5" /> {group.views}
+              <Eye className="w-3.5 h-3.5" /> {views}
             </span>
-            <span>{timeAgo(group.createdAt)}</span>
+            <TimeAgo date={group.createdAt} />
           </div>
           <a
             href={group.groupLink}

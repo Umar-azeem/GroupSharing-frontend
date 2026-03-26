@@ -36,7 +36,9 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
     const response = await fetch(`${activeBaseUrl}${endpoint}`, {
       ...options,
       headers,
+      credentials: "include",
     });
+
     
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || "Something went wrong");
@@ -95,7 +97,7 @@ export const groupsAPI = {
   delete: (id: string) => fetchAPI(`/groups/${id}`, { method: "DELETE" }),
 
   like: (id: string) => fetchAPI(`/groups/${id}/like`, { method: "POST" }),
-
+  view: (id: string) => fetchAPI(`/groups/${id}/view`, { method: "POST" }),
   getMyGroups: () => fetchAPI("/groups/my-groups"),
 };
 

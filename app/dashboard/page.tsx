@@ -110,8 +110,8 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {groups.map((group) => {
-                const imageUrl = group.groupImage
-                  ? group.groupImage.startsWith("http") ? group.groupImage : `${API_URL}${group.groupImage}`
+                const imageUrl = group.imageUrl
+                  ? group.imageUrl.startsWith("http") ? group.imageUrl : `${API_URL}${group.imageUrl}`
                   : null;
                 return (
                   <div key={group._id} className="glass-card p-4 flex items-center gap-4 hover:border-primary/20 transition-colors">

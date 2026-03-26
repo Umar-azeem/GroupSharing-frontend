@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { groupsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { useSocket } from "@/components/providers/SocketProvider";
 import {
   ExternalLink, Heart, Eye, CheckCircle, Calendar, User,
   ArrowLeft, Edit2, Trash2, Loader2, Tag
@@ -35,10 +36,69 @@ export default function GroupDetailPage() {
   const [deleting, setDeleting] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:8000";
+  const { socket } = useSocket();
+  const viewedRef = useRef(false);
 
   useEffect(() => {
     fetchGroup();
+
+    // View Increment Logic
+    if (!viewedRef.current && id) {
+      const viewedGroupsString = localStorage.getItem("gs_viewed") || "[]";
+      let viewedGroups = [];
+      try {
+        viewedGroups = JSON.parse(viewedGroupsString);
+      } catch (e) {
+        viewedGroups = [];
+      }
+
+      console.log(`[View Debug] Checking ID: ${id}, Already Viewed: ${viewedGroups.includes(id)}`);
+
+      if (!viewedGroups.includes(id)) {
+        viewedRef.current = true;
+        // Optimistically mark as viewed in localStorage
+        const updatedViewed = [...viewedGroups, id];
+        localStorage.setItem("gs_viewed", JSON.stringify(updatedViewed));
+        
+        console.log(`[View Debug] Triggering API.view for ${id}`);
+        // The backend handles the actual atomic de-duplication by IP/UserID
+        groupsAPI.view(id as string).catch(err => {
+          console.error("View increment error:", err);
+        });
+      } else {
+        viewedRef.current = true; // Mark as done even if skipped
+      }
+    }
+
+
+
   }, [id]);
+
+  // Real-time updates
+  useEffect(() => {
+    const handleGroupLiked = ({ groupId, likesCount, userId, isLiked }: any) => {
+      if (groupId === id) {
+        setLikes(likesCount);
+        if (user && userId === user._id) {
+          setLiked(isLiked);
+        }
+      }
+    };
+
+    const handleGroupViewed = ({ groupId, viewsCount }: any) => {
+      if (groupId === id) {
+        setGroup((prev: any) => prev ? { ...prev, views: viewsCount } : prev);
+      }
+    };
+
+    socket.on("group:liked", handleGroupLiked);
+    socket.on("group:viewed", handleGroupViewed);
+
+    return () => {
+      socket.off("group:liked", handleGroupLiked);
+      socket.off("group:viewed", handleGroupViewed);
+    };
+  }, [id, socket, user]);
 
   const fetchGroup = async () => {
     try {
@@ -59,7 +119,7 @@ export default function GroupDetailPage() {
       const data = await groupsAPI.like(id as string);
       setLikes(data.likes);
       setLiked(data.isLiked);
-    } catch {}
+    } catch { }
   };
 
   const handleDelete = async () => {
@@ -93,7 +153,7 @@ export default function GroupDetailPage() {
   }
 
   if (!group) return null;
-console.log("img", group);
+  console.log("img", group);
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -108,7 +168,7 @@ console.log("img", group);
 
         <article className="glass-card overflow-hidden">
           {/* Hero Image */}
-          
+
           {group.imageUrl && (
             <div className="aspect-video relative overflow-hidden">
               <img src={group.imageUrl} alt={group.groupName} className="w-full h-full object-cover" />
@@ -186,11 +246,10 @@ console.log("img", group);
               </a>
               <button
                 onClick={handleLike}
-                className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg border font-semibold text-sm transition-all ${
-                  liked
-                    ? "bg-red-500/10 border-red-500/30 text-red-400"
-                    : "border-border hover:border-red-400/30 hover:text-red-400"
-                }`}
+                className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg border font-semibold text-sm transition-all ${liked
+                  ? "bg-red-500/10 border-red-500/30 text-red-400"
+                  : "border-border hover:border-red-400/30 hover:text-red-400"
+                  }`}
               >
                 <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
                 {likes} {likes === 1 ? "Like" : "Likes"}

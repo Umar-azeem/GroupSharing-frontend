@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import GroupCard from "@/components/groups/GroupCard";
 import { groupsAPI } from "@/lib/api";
-import { Search, Flame, Clock, TrendingUp, Users, Zap, ArrowRight } from "lucide-react";
+import { useSocket } from "@/components/providers/SocketProvider";
+import { Search, Flame, Clock, TrendingUp, Users, Zap, ArrowRight, Eye } from "lucide-react";
 import Link from "next/link";
 
 const CATEGORIES = ["All", "WhatsApp", "Instagram", "LinkedIn", "Facebook", "Discord", "Slack", "Telegram", "Twitter", "Other"];
@@ -16,8 +17,7 @@ const SORT_OPTIONS = [
   { value: "trending", label: "Trending", icon: TrendingUp },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Eye } from "lucide-react";
+// Import for types/icons
 
 export default function HomePage() {
   const [groups, setGroups] = useState<any[]>([]);
@@ -27,6 +27,13 @@ export default function HomePage() {
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<any>(null);
+  const { socket } = useSocket();
+  const stateRef = useRef({ category, search, page });
+
+  // Update ref when state changes
+  useEffect(() => {
+    stateRef.current = { category, search, page };
+  }, [category, search, page]);
 
   const fetchGroups = useCallback(async () => {
     setLoading(true);
@@ -52,6 +59,51 @@ export default function HomePage() {
   useEffect(() => {
     setPage(1);
   }, [search, category, sort]);
+
+  // Real-time updates
+  useEffect(() => {
+    // New group created
+    const handleGroupCreated = (newGroup: any) => {
+      const { category, search, page } = stateRef.current;
+      
+      // Only prepend if we are on the first page and it matches filters
+      const matchesCategory = category === "All" || newGroup.category === category;
+      const matchesSearch = !search || 
+        newGroup.groupName.toLowerCase().includes(search.toLowerCase()) ||
+        newGroup.description.toLowerCase().includes(search.toLowerCase());
+
+      if (page === 1 && matchesCategory && matchesSearch) {
+        setGroups((prev) => [newGroup, ...prev.slice(0, 11)]);
+        setPagination((prev: any) => prev ? { ...prev, total: prev.total + 1 } : prev);
+      } else {
+        // Just update count
+        setPagination((prev: any) => prev ? { ...prev, total: prev.total + 1 } : prev);
+      }
+    };
+
+    // Group updated (likes/views)
+    const handleGroupLiked = ({ groupId, likesCount }: { groupId: string, likesCount: number }) => {
+      setGroups((prev) => 
+        prev.map((g) => g._id === groupId ? { ...g, likes: new Array(likesCount).fill("") } : g)
+      );
+    };
+
+    const handleGroupViewed = ({ groupId, viewsCount }: { groupId: string, viewsCount: number }) => {
+      setGroups((prev) => 
+        prev.map((g) => g._id === groupId ? { ...g, views: viewsCount } : g)
+      );
+    };
+
+    socket.on("group:created", handleGroupCreated);
+    socket.on("group:liked", handleGroupLiked);
+    socket.on("group:viewed", handleGroupViewed);
+
+    return () => {
+      socket.off("group:created", handleGroupCreated);
+      socket.off("group:liked", handleGroupLiked);
+      socket.off("group:viewed", handleGroupViewed);
+    };
+  }, [socket]);
 
   return (
     <div className="min-h-screen flex flex-col">

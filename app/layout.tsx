@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
+import { SocketProvider } from "@/components/providers/SocketProvider";
 
 export const metadata: Metadata = {
-  title: "GroupShare – Discover & Share Social Group Links",
-  description: "Find and share the best Instagram, WhatsApp, and Discord group links. Discover communities for Networking, Gaming, Business, and more.",
+  title: "GroupShare - Find Your Perfect Community",
+  description: "Discover and share group links for WhatsApp, Instagram, Discord, and more.",
 };
 
 export default function RootLayout({
@@ -14,11 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="antialiased">
         <AuthProvider>
-          {children}
-          <Toaster />
+          <SocketProvider>
+            {children}
+            <Toaster />
+          </SocketProvider>
         </AuthProvider>
       </body>
     </html>
