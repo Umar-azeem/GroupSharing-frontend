@@ -5,9 +5,25 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/layout/Navbar";
 import { groupsAPI } from "@/lib/api";
-import { Upload, Link2, FileText, Tag, Loader2, ImageIcon, X } from "lucide-react";
+import {
+  Upload,
+  Link2,
+  FileText,
+  Tag,
+  Loader2,
+  ImageIcon,
+  X,
+} from "lucide-react";
 
-const CATEGORIES = ["Tech", "Business", "Gaming", "Education", "Crypto", "Entertainment", "Other"];
+const CATEGORIES = [
+  "Tech",
+  "Business",
+  "Gaming",
+  "Education",
+  "Crypto",
+  "Entertainment",
+  "Other",
+];
 
 export default function CreatePostPage() {
   const { user, loading: authLoading } = useAuth();
@@ -48,11 +64,12 @@ export default function CreatePostPage() {
     setLoading(true);
     try {
       const data = await groupsAPI.getOne(id);
-      const { groupName, groupLink, description, category, groupImage } = data.group;
+      // ✅ Fix - backend returns "imageUrl"
+      const { groupName, groupLink, description, category, imageUrl } =
+        data.group;
       setForm({ groupName, groupLink, description, category });
-      if (groupImage) {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:8000";
-        setPreview(groupImage.startsWith("http") ? groupImage : `${API_URL}${groupImage}`);
+      if (imageUrl) {
+        setPreview(imageUrl); // Cloudinary URLs are already full https:// links
       }
     } catch (err: any) {
       setError("Failed to fetch group data for editing");
@@ -73,7 +90,12 @@ export default function CreatePostPage() {
     e.preventDefault();
     setError("");
 
-    if (!form.groupName || !form.groupLink || !form.description || !form.category) {
+    if (
+      !form.groupName ||
+      !form.groupLink ||
+      !form.description ||
+      !form.category
+    ) {
       return setError("All fields are required");
     }
 
@@ -113,11 +135,16 @@ export default function CreatePostPage() {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "Syne, sans-serif" }}>
+          <h1
+            className="text-3xl font-bold mb-2"
+            style={{ fontFamily: "Syne, sans-serif" }}
+          >
             {isEdit ? "Edit Group" : "Share a Group"}
           </h1>
           <p className="text-muted-foreground">
-            {isEdit ? "Update your community details" : "Post an Instagram community link for others to discover"}
+            {isEdit
+              ? "Update your community details"
+              : "Post an Instagram community link for others to discover"}
           </p>
         </div>
 
@@ -137,15 +164,25 @@ export default function CreatePostPage() {
               <div
                 onClick={() => fileRef.current?.click()}
                 className={`relative border-2 border-dashed rounded-xl overflow-hidden cursor-pointer transition-colors ${
-                  preview ? "border-primary/30" : "border-border hover:border-primary/30"
+                  preview
+                    ? "border-primary/30"
+                    : "border-border hover:border-primary/30"
                 }`}
               >
                 {preview ? (
                   <div className="relative">
-                    <img src={preview} alt="Preview" className="w-full h-48 object-cover" />
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="w-full h-48 object-cover"
+                    />
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setImage(null); setPreview(""); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setImage(null);
+                        setPreview("");
+                      }}
                       className="absolute top-2 right-2 w-7 h-7 bg-background/80 rounded-full flex items-center justify-center hover:bg-background"
                     >
                       <X className="w-4 h-4" />
@@ -178,7 +215,9 @@ export default function CreatePostPage() {
                 className="input-field"
                 placeholder="e.g., Tech Developers Pakistan"
                 value={form.groupName}
-                onChange={(e) => setForm({ ...form, groupName: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, groupName: e.target.value })
+                }
                 required
                 maxLength={100}
               />
@@ -194,7 +233,9 @@ export default function CreatePostPage() {
                 className="input-field"
                 placeholder="https://instagram.com/xyz"
                 value={form.groupLink}
-                onChange={(e) => setForm({ ...form, groupLink: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, groupLink: e.target.value })
+                }
                 required
               />
             </div>
@@ -209,11 +250,15 @@ export default function CreatePostPage() {
                 rows={4}
                 placeholder="Tell people what this group is about..."
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
                 required
                 maxLength={500}
               />
-              <p className="text-xs text-muted-foreground text-right mt-1">{form.description.length}/500</p>
+              <p className="text-xs text-muted-foreground text-right mt-1">
+                {form.description.length}/500
+              </p>
             </div>
 
             {/* Category */}
@@ -253,7 +298,13 @@ export default function CreatePostPage() {
                 className="flex-1 btn-primary flex items-center justify-center gap-2 py-3"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {loading ? (isEdit ? "Updating..." : "Posting...") : (isEdit ? "Update Group" : "Share Group")}
+                {loading
+                  ? isEdit
+                    ? "Updating..."
+                    : "Posting..."
+                  : isEdit
+                    ? "Update Group"
+                    : "Share Group"}
               </button>
             </div>
           </form>

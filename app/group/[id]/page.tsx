@@ -75,8 +75,8 @@ export default function GroupDetailPage() {
 
   const isOwner = user && group?.createdBy?._id === user._id;
   const isAdmin = user?.role === "admin";
-  const imageUrl = group?.groupImage
-    ? group.groupImage.startsWith("http") ? group.groupImage : `${API_URL}${group.groupImage}`
+  const imageUrl = group?.imageUrl
+    ? group.imageUrl.startsWith("http") ? group.imageUrl : `${API_URL}${group.imageUrl}`
     : null;
 
   if (loading) {
@@ -91,7 +91,7 @@ export default function GroupDetailPage() {
   }
 
   if (!group) return null;
-
+console.log("img", group);
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -106,9 +106,10 @@ export default function GroupDetailPage() {
 
         <article className="glass-card overflow-hidden">
           {/* Hero Image */}
-          {imageUrl && (
+          
+          {group.imageUrl && (
             <div className="aspect-video relative overflow-hidden">
-              <img src={imageUrl} alt={group.groupName} className="w-full h-full object-cover" />
+              <img src={group.imageUrl} alt={group.groupName} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
               <div className="absolute bottom-4 left-4">
                 <span className={`category-badge ${CATEGORY_COLORS[group.category] || CATEGORY_COLORS.Other}`}>

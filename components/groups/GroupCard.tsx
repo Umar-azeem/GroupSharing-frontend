@@ -11,7 +11,7 @@ interface Group {
   _id: string;
   groupName: string;
   groupLink: string;
-  groupImage: string;
+  imageUrl: string;
   description: string;
   category: string;
   createdBy: { _id: string; name: string; profileImage: string };
@@ -36,15 +36,17 @@ export default function GroupCard({ group }: { group: Group }) {
   const router = useRouter();
   const [likes, setLikes] = useState(group.likes?.length || 0);
   const [liked, setLiked] = useState(
-    user ? group.likes?.includes(user._id) : false
+    user ? group.likes?.includes(user._id) : false,
   );
   const [liking, setLiking] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:8000";
-  const imageUrl = group.groupImage
-    ? group.groupImage.startsWith("http")
-      ? group.groupImage
-      : `${API_URL}${group.groupImage}`
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+    "http://localhost:8000";
+  const imageUrl = group.imageUrl
+    ? group.imageUrl.startsWith("http")
+      ? group.imageUrl
+      : `${API_URL}${group.imageUrl}`
     : null;
 
   const handleLike = async (e: React.MouseEvent) => {
@@ -56,7 +58,7 @@ export default function GroupCard({ group }: { group: Group }) {
       const data = await groupsAPI.like(group._id);
       setLikes(data.likes);
       setLiked(data.isLiked);
-    } catch { }
+    } catch {}
     setLiking(false);
   };
 
@@ -89,14 +91,19 @@ export default function GroupCard({ group }: { group: Group }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <div className="text-4xl font-bold text-muted-foreground/20" style={{ fontFamily: "Syne, sans-serif" }}>
+            <div
+              className="text-4xl font-bold text-muted-foreground/20"
+              style={{ fontFamily: "Syne, sans-serif" }}
+            >
               {group.groupName[0]}
             </div>
           </div>
         )}
         {/* Category badge overlay */}
         <div className="absolute top-3 left-3">
-          <span className={`category-badge ${CATEGORY_COLORS[group.category] || CATEGORY_COLORS.Other}`}>
+          <span
+            className={`category-badge ${CATEGORY_COLORS[group.category] || CATEGORY_COLORS.Other}`}
+          >
             {group.category}
           </span>
         </div>
@@ -109,7 +116,10 @@ export default function GroupCard({ group }: { group: Group }) {
 
       {/* Content */}
       <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-bold text-base mb-1 truncate group-hover:text-primary transition-colors" style={{ fontFamily: "Syne, sans-serif" }}>
+        <h3
+          className="font-bold text-base mb-1 truncate group-hover:text-primary transition-colors"
+          style={{ fontFamily: "Syne, sans-serif" }}
+        >
           {group.groupName}
         </h3>
         <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2 flex-1 mb-3">
@@ -121,8 +131,9 @@ export default function GroupCard({ group }: { group: Group }) {
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <button
               onClick={handleLike}
-              className={`flex items-center gap-1 transition-colors ${liked ? "text-red-400" : "hover:text-red-400"
-                } ${!user ? "cursor-default" : ""}`}
+              className={`flex items-center gap-1 transition-colors ${
+                liked ? "text-red-400" : "hover:text-red-400"
+              } ${!user ? "cursor-default" : ""}`}
             >
               <Heart className={`w-3.5 h-3.5 ${liked ? "fill-current" : ""}`} />
               {likes}

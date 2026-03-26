@@ -1,9 +1,11 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
+
 const getToken = () => {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("token");
 };
+
 
 const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
   const token = getToken();
@@ -11,7 +13,8 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
     ...(options.headers as Record<string, string>),
   };
 
-  if (token) {
+
+  if (token) { 
     headers["Authorization"] = `Bearer ${token}`;
   }
 
