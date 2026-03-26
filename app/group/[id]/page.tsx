@@ -13,12 +13,14 @@ import {
 import Link from "next/link";
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Tech: "border-blue-500/40 text-blue-400 bg-blue-500/10",
-  Business: "border-emerald-500/40 text-emerald-400 bg-emerald-500/10",
-  Gaming: "border-purple-500/40 text-purple-400 bg-purple-500/10",
-  Education: "border-yellow-500/40 text-yellow-400 bg-yellow-500/10",
-  Crypto: "border-orange-500/40 text-orange-400 bg-orange-500/10",
-  Entertainment: "border-pink-500/40 text-pink-400 bg-pink-500/10",
+  WhatsApp: "border-green-500/40 text-green-400 bg-green-500/10",
+  Instagram: "border-pink-500/40 text-pink-400 bg-pink-500/10",
+  LinkedIn: "border-blue-600/40 text-blue-500 bg-blue-600/10",
+  Facebook: "border-blue-500/40 text-blue-400 bg-blue-500/10",
+  Discord: "border-indigo-500/40 text-indigo-400 bg-indigo-500/10",
+  Slack: "border-purple-500/40 text-purple-400 bg-purple-500/10",
+  Telegram: "border-sky-500/40 text-sky-400 bg-sky-500/10",
+  Twitter: "border-sky-400/40 text-sky-300 bg-sky-400/10",
   Other: "border-border text-muted-foreground bg-muted",
 };
 

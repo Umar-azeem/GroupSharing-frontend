@@ -1,11 +1,21 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const FALLBACK_API_URL = process.env.NEXT_PUBLIC_API_URL_FALLBACK || "http://localhost:8000/api";
 
+let activeBaseUrl = PRIMARY_API_URL;
 
 const getToken = () => {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("token");
 };
 
+const fetchWithTimeout = (url: string, options: RequestInit, timeout = 5000) => {
+  return Promise.race([
+    fetch(url, options),
+    new Promise<Response>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout")), timeout)
+    )
+  ]);
+};
 
 const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
   const token = getToken();
@@ -13,8 +23,7 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
     ...(options.headers as Record<string, string>),
   };
 
-
-  if (token) { 
+  if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
@@ -22,18 +31,33 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+  try {
+    // Try primary or currently active URL
+    const response = await fetch(`${activeBaseUrl}${endpoint}`, {
+      ...options,
+      headers,
+    });
+    
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Something went wrong");
+    return data;
+  } catch (error: any) {
+    // If it's a network error or timeout, and we are not already on fallback
+    if ((error.message === "Failed to fetch" || error.name === "TypeError" || error.message === "Timeout") && activeBaseUrl !== FALLBACK_API_URL) {
+      console.warn(`Primary API failed, switching to fallback: ${FALLBACK_API_URL}`);
+      activeBaseUrl = FALLBACK_API_URL;
+      
+      // Retry with fallback
+      const response = await fetch(`${activeBaseUrl}${endpoint}`, {
+        ...options,
+        headers,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Something went wrong");
+      return data;
+    }
+    throw error;
   }
-
-  return data;
 };
 
 // Auth API

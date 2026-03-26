@@ -8,7 +8,7 @@ import { groupsAPI } from "@/lib/api";
 import { Search, Flame, Clock, TrendingUp, Users, Zap, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-const CATEGORIES = ["All", "Tech", "Business", "Gaming", "Education", "Crypto", "Entertainment", "Other"];
+const CATEGORIES = ["All", "WhatsApp", "Instagram", "LinkedIn", "Facebook", "Discord", "Slack", "Telegram", "Twitter", "Other"];
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest", icon: Clock },

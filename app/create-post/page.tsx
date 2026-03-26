@@ -16,12 +16,14 @@ import {
 } from "lucide-react";
 
 const CATEGORIES = [
-  "Tech",
-  "Business",
-  "Gaming",
-  "Education",
-  "Crypto",
-  "Entertainment",
+  "WhatsApp",
+  "Instagram",
+  "LinkedIn",
+  "Facebook",
+  "Discord",
+  "Slack",
+  "Telegram",
+  "Twitter",
   "Other",
 ];
 

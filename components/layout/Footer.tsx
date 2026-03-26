@@ -32,7 +32,7 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-4 text-sm">Categories</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              {["Tech", "Business", "Gaming", "Education", "Crypto"].map((cat) => (
+              {["WhatsApp", "Instagram", "LinkedIn", "Facebook", "Discord"].map((cat) => (
                 <li key={cat}>
                   <Link href={`/?category=${cat}`} className="hover:text-foreground transition-colors">{cat}</Link>
                 </li>
