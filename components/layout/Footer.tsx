@@ -43,7 +43,7 @@ export default function Footer() {
 
         <div className="border-t border-border/50 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-muted-foreground text-xs">
-            © 2024 GroupShare. Built for community discovery.
+            ©2026  GroupShare. Built for community discovery.
           </p>
           <div className="flex items-center gap-3">
             <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
