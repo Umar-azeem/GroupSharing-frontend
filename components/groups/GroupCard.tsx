@@ -182,15 +182,19 @@ export default function GroupCard({ group }: { group: Group }) {
             </span>
             <TimeAgo date={group.createdAt} />
           </div>
-          <a
-            href={group.groupLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!user) {
+                router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
+                return;
+              }
+              window.open(group.groupLink, "_blank", "noopener,noreferrer");
+            }}
+            className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline bg-transparent border-none cursor-pointer"
           >
             Join <ExternalLink className="w-3 h-3" />
-          </a>
+          </button>
         </div>
       </div>
     </article>
