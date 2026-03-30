@@ -185,11 +185,9 @@ export default function GroupCard({ group }: { group: Group }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (!user) {
-                router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
-                return;
+              if (group.groupLink) {
+                window.open(group.groupLink, "_blank", "noopener,noreferrer");
               }
-              window.open(group.groupLink, "_blank", "noopener,noreferrer");
             }}
             className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline bg-transparent border-none cursor-pointer"
           >

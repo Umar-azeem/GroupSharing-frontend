@@ -238,17 +238,13 @@ export default function GroupDetailPage() {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => {
-                  if (!user) {
-                    router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
-                    return;
-                  }
                   if (group.groupLink) {
                     window.open(group.groupLink, "_blank", "noopener,noreferrer");
                   }
                 }}
                 className="btn-primary flex items-center justify-center gap-2 flex-1 py-3 text-base"
               >
-                <ExternalLink className="w-5 h-5" /> {user ? "Join Group" : "Login to Join"}
+                <ExternalLink className="w-5 h-5" /> Join Group
               </button>
               <button
                 onClick={handleLike}
@@ -271,23 +267,14 @@ export default function GroupDetailPage() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground mb-0.5">Group Link</p>
-            {user ? (
-              <a
-                href={group.groupLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary text-sm truncate block hover:underline"
-              >
-                {group.groupLink}
-              </a>
-            ) : (
-              <p 
-                onClick={() => router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`)}
-                className="text-muted-foreground text-sm cursor-pointer hover:text-primary transition-colors italic"
-              >
-                Login to view link...
-              </p>
-            )}
+            <a
+              href={group.groupLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary text-sm truncate block hover:underline"
+            >
+              {group.groupLink || "No link provided"}
+            </a>
           </div>
         </div>
       </main>
